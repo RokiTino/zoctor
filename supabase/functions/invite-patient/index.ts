@@ -20,13 +20,10 @@ Deno.serve(async (request) => {
   const url = Deno.env.get("SUPABASE_URL");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const redirect = Deno.env.get("DOCONNECT_INVITE_REDIRECT_URL");
+  // This is the published patient login origin. Keep it fixed so a missing
+  // Edge Function secret cannot silently disable invitations.
+  const redirect = "https://docconnect-patient-preview.tinoroki.chatgpt.site/";
   if (!url || !anonKey || !serviceKey) return reply(500, "Clinic connection is unavailable.");
-  try {
-    if (!redirect || new URL(redirect).protocol !== "https:") throw Error();
-  } catch {
-    return reply(503, "Patient invitations are not configured yet.");
-  }
 
   const auth = createClient(url, anonKey);
   const admin = createClient(url, serviceKey);
