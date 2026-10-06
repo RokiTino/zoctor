@@ -75,12 +75,12 @@ Deno.serve(async (request) => {
   });
   if (profileError && profileError.code !== "23505")
     return reply(500, "Invitation sent, but the patient profile could not be created. Contact the clinic administrator.");
-  const { error: linkError } = await admin.from("care_links").upsert({
+  const { error: linkError } = await admin.from("care_link_requests").upsert({
     doctor_id: identity.user.id,
     patient_id: invitation.user.id,
   }, { onConflict: "doctor_id,patient_id", ignoreDuplicates: true });
   if (linkError)
-    return reply(500, "Invitation sent, but the patient could not be linked to your practice. Contact the clinic administrator.");
+    return reply(500, "Invitation sent, but the approval request could not be created. Contact the clinic administrator.");
 
-  return reply(200, "Invitation sent. The patient can set a password in DocConnect.");
+  return reply(200, "Invitation sent. The patient must accept the care request in DocConnect.");
 });
