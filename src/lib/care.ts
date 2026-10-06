@@ -32,6 +32,7 @@ export async function loadCare() {
   if (!care) throw new Error("The clinic connection has not been configured.");
   const results = await Promise.all([
     care.from("care_people").select("*").order("display_name"),
+    care.from("care_links").select("doctor_id,patient_id"),
     care
       .from("care_slots")
       .select("*")
@@ -45,7 +46,8 @@ export async function loadCare() {
   for (const r of results) if (r.error) throw r.error;
   return {
     people: results[0].data as Person[],
-    slots: results[1].data as Slot[],
-    appointments: results[2].data as Appointment[],
+    links: results[1].data as { doctor_id: string; patient_id: string }[],
+    slots: results[2].data as Slot[],
+    appointments: results[3].data as Appointment[],
   };
 }
