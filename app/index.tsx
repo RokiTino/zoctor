@@ -260,11 +260,28 @@ export default function DoctorWorkspace() {
               <View style={s.card}>
                 <Text style={s.heading}>Add a patient</Text>
                 <Text style={s.muted}>
-                  Enter the email of an existing FieldMed Supabase account. The patient will appear in your practice and can sign in to DocConnect.
+                  Invite a new patient by email, or connect someone who already has a FieldMed account.
                 </Text>
                 {input("Patient name", patientName, setPatientName)}
                 {input("Patient email", patientEmail, setPatientEmail)}
-                {button(busy ? "Adding…" : "Add patient", () =>
+                {button(busy ? "Sending…" : "Invite new patient", () =>
+                  act(async () => {
+                    if (!care) throw Error("Clinic connection is not configured.");
+                    const { data, error } = await care.functions.invoke("invite-patient", {
+                      body: { name: patientName.trim(), email: patientEmail.trim() },
+                    });
+                    if (error) {
+                      const response = (error as any).context as Response | undefined;
+                      const detail = response ? await response.json().catch(() => null) : null;
+                      throw Error(detail?.message || error.message);
+                    }
+                    setPatientName("");
+                    setPatientEmail("");
+                    await refresh();
+                    setMessage(data?.message || "Patient invitation sent.");
+                  }),
+                )}
+                {button(busy ? "Adding…" : "Add existing patient", () =>
                   act(async () => {
                     if (!care) throw Error("Clinic connection is not configured.");
                     const { data, error } = await care.functions.invoke("add-patient", {
@@ -280,7 +297,7 @@ export default function DoctorWorkspace() {
                     await refresh();
                     setMessage(data?.message || "Patient added to your practice.");
                   }),
-                )}
+                true)}
                 <Text style={s.heading}>Your patients</Text>
                 {patients.length ? patients.map((p) => (
                   <Text key={p.id}>{p.display_name}</Text>
