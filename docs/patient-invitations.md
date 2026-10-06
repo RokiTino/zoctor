@@ -6,7 +6,7 @@ Before enabling invitations:
 
 1. Publish the DocConnect web app at an HTTPS URL that patients can open. It must use the same FieldMed Supabase project.
 2. Add that exact URL to FieldMed Supabase Auth's redirect allow list.
-3. Set `DOCONNECT_INVITE_REDIRECT_URL` for the `invite-patient` Edge Function to that URL. The function refuses to send invitations until it is set to an HTTPS URL.
+3. The `invite-patient` Edge Function uses the published DocConnect URL directly. If the patient portal URL changes, update that URL in the function and redeploy it.
 4. Configure FieldMed Auth email delivery for the intended patient volume. Supabase's default sender is limited.
 5. Deploy `supabase/functions/invite-patient/index.ts` with JWT verification enabled.
 
