@@ -72,7 +72,29 @@ Deno.serve(async (request) => {
     if (error && error.code !== "23505") return reply(500, "Could not activate the patient profile.");
   }
 
-  const { error: linkError } = await admin.from("care_links").upsert({ doctor_id: identity.user.id, patient_id: patientId }, { onConflict: "doctor_id,patient_id", ignoreDuplicates: true });
-  if (linkError) return reply(500, "Patient profile exists, but could not connect it to your practice.");
-  return reply(200, "Patient added to your practice.");
+  const { data: linked, error: linkedError } = await admin.from("care_links")
+    .select("doctor_id")
+    .eq("doctor_id", identity.user.id)
+    .eq("patient_id", patientId)
+    .maybeSingle();
+  if (linkedError) return reply(500, "Could not check the care relationship.");
+  if (linked) return reply(200, "This patient is already connected to your practice.");
+  const { data: previous, error: previousError } = await admin.from("care_link_requests")
+    .select("status")
+    .eq("doctor_id", identity.user.id)
+    .eq("patient_id", patientId)
+    .maybeSingle();
+  if (previousError) return reply(500, "Could not check the connection request.");
+  if (previous?.status === "declined")
+    return reply(409, "The patient declined this request. Ask the clinic administrator for next steps.");
+  if (previous?.status === "pending")
+    return reply(200, "The patient still needs to approve the request in DocConnect.");
+  if (previous?.status === "accepted")
+    return reply(409, "A previous care link was removed. Ask the clinic administrator to review access.");
+  const { error: requestError } = await admin.from("care_link_requests").upsert(
+    { doctor_id: identity.user.id, patient_id: patientId },
+    { onConflict: "doctor_id,patient_id", ignoreDuplicates: true },
+  );
+  if (requestError) return reply(500, "Patient profile exists, but could not request a connection.");
+  return reply(200, "Connection requested. The patient must approve it in DocConnect.");
 });
