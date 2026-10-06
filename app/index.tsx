@@ -19,6 +19,7 @@ export default function DoctorWorkspace() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [people, setPeople] = useState<Person[]>([]);
+  const [links, setLinks] = useState<{ doctor_id: string; patient_id: string }[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [tab, setTab] = useState("Appointments");
@@ -29,6 +30,8 @@ export default function DoctorWorkspace() {
   const [time, setTime] = useState("");
   const [summary, setSummary] = useState("");
   const [selected, setSelected] = useState("");
+  const [patientName, setPatientName] = useState("");
+  const [patientEmail, setPatientEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const name = (id: string) =>
@@ -40,6 +43,7 @@ export default function DoctorWorkspace() {
     if (account !== currentUser.current || sequence !== refreshSequence.current)
       return;
     setPeople(data.people);
+    setLinks(data.links);
     setSlots(data.slots);
     setAppointments(data.appointments);
   }
@@ -64,6 +68,7 @@ export default function DoctorWorkspace() {
       setUser(currentUser.current);
       if (!session) {
         setPeople([]);
+        setLinks([]);
         setSlots([]);
         setAppointments([]);
         setPatient("");
@@ -93,7 +98,9 @@ export default function DoctorWorkspace() {
     };
   }, [user]);
   const me = people.find((p) => p.id === user);
-  const patients = people.filter((p) => p.role === "patient");
+  const patients = people.filter((p) =>
+    p.role === "patient" && links.some((link) => link.doctor_id === user && link.patient_id === p.id),
+  );
   const doctors = people.filter((p) => p.role === "doctor");
   const shown = appointments
     .filter(
@@ -187,7 +194,7 @@ export default function DoctorWorkspace() {
       >
         <Text style={s.brand}>zoctor</Text>
         <Text style={s.caption}>DOCTOR WORKSPACE</Text>
-        {["Appointments", "Book specialist", "Availability", "History"].map(
+        {["Appointments", "Patients", "Book specialist", "Availability", "History"].map(
           (t) => (
             <Pressable
               accessibilityRole="button"
@@ -249,6 +256,37 @@ export default function DoctorWorkspace() {
                 </View>
               ))}
             </View>
+            {tab === "Patients" && (
+              <View style={s.card}>
+                <Text style={s.heading}>Add a patient</Text>
+                <Text style={s.muted}>
+                  Enter the email of an existing FieldMed Supabase account. The patient will appear in your practice and can sign in to DocConnect.
+                </Text>
+                {input("Patient name", patientName, setPatientName)}
+                {input("Patient email", patientEmail, setPatientEmail)}
+                {button(busy ? "Adding…" : "Add patient", () =>
+                  act(async () => {
+                    if (!care) throw Error("Clinic connection is not configured.");
+                    const { data, error } = await care.functions.invoke("add-patient", {
+                      body: { name: patientName.trim(), email: patientEmail.trim() },
+                    });
+                    if (error) {
+                      const response = (error as any).context as Response | undefined;
+                      const detail = response ? await response.json().catch(() => null) : null;
+                      throw Error(detail?.message || error.message);
+                    }
+                    setPatientName("");
+                    setPatientEmail("");
+                    await refresh();
+                    setMessage(data?.message || "Patient added to your practice.");
+                  }),
+                )}
+                <Text style={s.heading}>Your patients</Text>
+                {patients.length ? patients.map((p) => (
+                  <Text key={p.id}>{p.display_name}</Text>
+                )) : <Text style={s.muted}>No patients connected yet.</Text>}
+              </View>
+            )}
             {(tab === "Appointments" ||
               tab === "History" ||
               tab === "Book specialist") && (
