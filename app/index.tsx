@@ -260,7 +260,7 @@ export default function DoctorWorkspace() {
               <View style={s.card}>
                 <Text style={s.heading}>Add a patient</Text>
                 <Text style={s.muted}>
-                  Invite a new patient by email, or connect someone who already has a FieldMed account.
+                  Invite a new patient by email, or request access to someone who already has a FieldMed account. The patient must approve the care relationship in DocConnect before you can view or book their care.
                 </Text>
                 {input("Patient name", patientName, setPatientName)}
                 {input("Patient email", patientEmail, setPatientEmail)}
@@ -281,7 +281,7 @@ export default function DoctorWorkspace() {
                     setMessage(data?.message || "Patient invitation sent.");
                   }),
                 )}
-                {button(busy ? "Adding…" : "Add existing patient", () =>
+                {button(busy ? "Requesting…" : "Request existing patient", () =>
                   act(async () => {
                     if (!care) throw Error("Clinic connection is not configured.");
                     const { data, error } = await care.functions.invoke("add-patient", {
@@ -295,7 +295,7 @@ export default function DoctorWorkspace() {
                     setPatientName("");
                     setPatientEmail("");
                     await refresh();
-                    setMessage(data?.message || "Patient added to your practice.");
+                    setMessage(data?.message || "Patient approval requested.");
                   }),
                 true)}
                 <Text style={s.heading}>Your patients</Text>
@@ -358,9 +358,10 @@ export default function DoctorWorkspace() {
                       {a.status.replace("_", " ").toUpperCase()}
                     </Text>
                     {!!a.summary && <Text>{a.summary}</Text>}
-                    {a.status === "scheduled" && (
+                    {a.status === "scheduled" &&
+                      (a.care_slots.doctor_id === user || a.created_by === user) && (
                       <View style={s.wrap}>
-                        {button(
+                        {a.care_slots.doctor_id === user && button(
                           "Complete checkup",
                           () => {
                             setSelected(a.id);
@@ -368,7 +369,7 @@ export default function DoctorWorkspace() {
                           },
                           true,
                         )}
-                        {button(
+                        {(a.care_slots.doctor_id === user || a.created_by === user) && button(
                           "Cancel appointment",
                           () => {
                             setSelected("cancel:" + a.id);
