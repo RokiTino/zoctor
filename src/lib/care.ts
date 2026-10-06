@@ -24,6 +24,7 @@ export type Appointment = {
   id: string;
   patient_id: string;
   slot_id: string;
+  created_by: string;
   status: string;
   summary: string;
   care_slots: Slot;

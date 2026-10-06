@@ -22,7 +22,7 @@ do $$ begin
  begin
   update public.care_appointments set status='completed',summary='Too early' where id='00000000-0000-4000-c000-000000000001';
   raise exception 'TEST FAILED: future completion allowed';
- exception when raise_exception then if sqlerrm not like 'Future appointments%' then raise; end if; end;
+ exception when raise_exception then if sqlerrm not like 'Only the treating doctor%' then raise; end if; end;
 end $$;
 reset role;
 select set_config('request.jwt.claim.sub','00000000-0000-4000-a000-000000000002',true);
